@@ -1,0 +1,44 @@
+import { ReactNode } from 'react';
+
+interface BadgeProps {
+  children: ReactNode;
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'error' | 'info';
+  size?: 'sm' | 'md' | 'lg' | string;
+  className?: string;
+}
+
+export function Badge({ children, variant = 'default', size = 'md', className = '' }: BadgeProps) {
+  const variants = {
+    default: 'bg-gray-100 text-gray-800',
+    primary: 'bg-accent-100 text-accent-800',
+    secondary: 'bg-gray-200 text-gray-700',
+    success: 'bg-green-100 text-green-800',
+    warning: 'bg-yellow-100 text-yellow-800',
+    danger: 'bg-red-100 text-red-800',
+    error: 'bg-red-100 text-red-800',
+    info: 'bg-blue-100 text-blue-800',
+  };
+
+  const sizeClasses = {
+    sm: 'px-2 py-0.5 text-xs',
+    md: 'px-2.5 py-0.5 text-xs',
+    lg: 'px-3 py-1 text-sm',
+  };
+
+  const sizeClass = typeof size === 'string' && size in sizeClasses 
+    ? sizeClasses[size as keyof typeof sizeClasses] 
+    : sizeClasses.md;
+
+  return (
+    <span
+      className={`
+        inline-flex items-center rounded-full font-medium
+        ${variants[variant]}
+        ${sizeClass}
+        ${className}
+      `}
+    >
+      {children}
+    </span>
+  );
+}

@@ -1,0 +1,99 @@
+name: Code Health Check
+on: 
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+        
+      - name: ESLint Check
+        run: npm run lint
+        
+      - name: Build Check
+        run: npm run build
+        
+      - name: Security Audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+        
+      - name: Run Code Health Analysis
+        run: npm run health-check
+        
+      - name: Bundle Size Analysis
+        run: npm run bundle:size
+        
+      - name: Upload Health Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: code-health-report
+          path: code-health-report.json
+          
+      - name: Comment PR with Health Report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('code-health-report.json')) {
+              const report = JSON.parse(fs.readFileSync('code-health-report.json', 'utf8'));
+              const comment = `
+              ## 📊 Code Health Report
+              
+              - **Overall Score**: ${report.overallScore}/100
+              - **TypeScript Issues**: ${report.issues?.typescript || 0}
+              - **ESLint Issues**: ${report.issues?.eslint || 0}
+              - **Security Issues**: ${report.issues?.security || 0}
+              - **Bundle Size**: ${report.bundleSize || 'N/A'}
+              
+              ${report.overallScore >= 80 ? '✅ Code quality is good!' : '⚠️ Code quality needs improvement'}
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: health-check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
