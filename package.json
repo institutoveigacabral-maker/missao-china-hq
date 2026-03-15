@@ -98,6 +98,9 @@
     "quality:pre-commit": "npm run type-check && npm run lint:fix && npm run build",
     "quality:audit": "npm audit --audit-level=moderate && npm run health-check",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   }
 }
